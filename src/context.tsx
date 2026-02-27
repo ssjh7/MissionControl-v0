@@ -3,6 +3,10 @@ import type { AppState, Tab, Worker, MCTask, LogEntry, StatusLevel } from './typ
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 const uid = () => Math.random().toString(36).slice(2, 10);
+
+// Module-level guard — survives React StrictMode's mount→unmount→remount cycle
+// so the first-run block fires exactly once per renderer session.
+let firstRunFired = false;
 const obfuscate = (s: string) => btoa(s);
 const deobfuscate = (s: string) => { try { return atob(s); } catch { return ''; } };
 
@@ -118,14 +122,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // first-run side-effect
   useEffect(() => {
-    if (!state.firstRunDone) {
-      const ts = new Date().toISOString();
-      addLog(`[FIRST RUN] ${ts} — MissionControl v0 started`, 'info');
+    if (firstRunFired || state.firstRunDone) return;
+    firstRunFired = true;
+
+    const ts = new Date().toISOString();
+    const inElectron = !!window.mc;
+
+    addLog(`[FIRST RUN] ${ts} — MissionControl v0 started`, 'info');
+    if (inElectron) {
+      addLog(`[FIRST RUN] Created D:\\MissionControl\\data`, 'info');
+      addLog(`[FIRST RUN] Created D:\\MissionControl\\logs`, 'info');
+      addLog(`[FIRST RUN] Wrote D:\\MissionControl\\logs\\first-run.txt`, 'info');
+    } else {
       addLog(`[FIRST RUN] Would create D:\\MissionControl\\data  (simulated in browser)`, 'info');
       addLog(`[FIRST RUN] Would create D:\\MissionControl\\logs  (simulated in browser)`, 'info');
-      addLog(`[FIRST RUN] Would write  D:\\MissionControl\\logs\\first-run.txt`, 'info');
-      dispatch({ type: 'MARK_FIRST_RUN' });
+      addLog(`[FIRST RUN] Would write  D:\\MissionControl\\logs\\first-run.txt  (simulated in browser)`, 'info');
     }
+    dispatch({ type: 'MARK_FIRST_RUN' });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
