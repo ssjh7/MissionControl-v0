@@ -9,16 +9,19 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "electron:compile": "tsc --project tsconfig.electron.json",
-    "electron:dev": "concurrently -k --success first -n VITE,ELECTRON -c cyan,yellow \"vite\" \"wait-on http://localhost:5174 && tsc --project tsconfig.electron.json && electron .\"",
+    "electron:dev": "concurrently -k --success first -n VITE,ELECTRON -c cyan,yellow \"vite\" \"wait-on file:.vite-port && tsc --project tsconfig.electron.json && electron .\"",
     "electron:build": "pnpm build && tsc --project tsconfig.electron.json"
   },
   "dependencies": {
+    "express": "^5.2.1",
     "lucide-react": "^0.575.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["electron"]
+    "onlyBuiltDependencies": [
+      "electron"
+    ]
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",

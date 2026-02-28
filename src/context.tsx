@@ -107,16 +107,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // load persisted data on mount
   useEffect(() => {
     const raw = localStorage.getItem('mc_state');
+    let savedKey = '';
     if (raw) {
       try {
         const saved = JSON.parse(raw) as Partial<AppState>;
+        savedKey = saved.openaiKey ?? '';
         dispatch({ type: 'LOAD_SAVED', saved: {
-          openaiKey:   saved.openaiKey   ?? '',
+          openaiKey:    savedKey,
           firstRunDone: saved.firstRunDone ?? false,
-          ingressUrl:  saved.ingressUrl  ?? 'http://localhost:3001',
+          ingressUrl:   saved.ingressUrl  ?? 'http://localhost:3001',
         } });
       } catch { /* ignore */ }
     }
+    const keyPresent = !!savedKey;
+    console.log(`[BOOT] OpenAI key present: ${keyPresent ? 'yes' : 'no'}`);
+    dispatch({ type: 'ADD_LOG', entry: { id: uid(), timestamp: Date.now(), workerId: null, taskId: null, level: 'info', message: `[BOOT] OpenAI key present: ${keyPresent ? 'yes' : 'no'}` } });
   }, []);
 
   // persist select fields

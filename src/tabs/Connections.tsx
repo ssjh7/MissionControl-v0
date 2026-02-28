@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Eye, EyeOff, Zap, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { useApp } from '../context';
 import WhatsAppInbox from '../components/WhatsAppInbox';
@@ -39,22 +39,58 @@ export function Connections() {
   const [rawKey,    setRawKey]   = useState(() => getOpenaiKey());
   const [showKey,   setShowKey]  = useState(false);
   const [testState, setTest]     = useState<TestState>('idle');
+  const [testMsg,   setTestMsg]  = useState('');
+
+  // Sync input when LOAD_SAVED restores the key from localStorage after mount
+  useEffect(() => {
+    const key = getOpenaiKey();
+    if (key) setRawKey(key);
+  }, [getOpenaiKey]);
 
   function saveKey() {
     dispatch({ type: 'SET_OPENAI_KEY', raw: rawKey });
     addLog('OpenAI API key updated', 'info');
   }
 
-  function testConnection() {
-    if (!rawKey.trim()) return;
+  async function testConnection() {
+    const key = rawKey.trim();
+    if (!key) return;
     setTest('testing');
+    setTestMsg('');
     addLog('Testing OpenAI connection…', 'info');
-    setTimeout(() => {
-      const ok = rawKey.startsWith('sk-');
-      setTest(ok ? 'ok' : 'fail');
-      addLog(ok ? 'OpenAI connection test: OK (simulated)' : 'OpenAI connection test: FAILED — key format invalid', ok ? 'info' : 'error');
-      setTimeout(() => setTest('idle'), 3000);
-    }, 1500);
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+
+    try {
+      const res = await fetch('https://api.openai.com/v1/models', {
+        headers: { Authorization: `Bearer ${key}` },
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+
+      if (res.ok) {
+        setTest('ok');
+        setTestMsg('Connected');
+        addLog('OpenAI connection test: OK', 'info');
+      } else if (res.status === 401) {
+        setTest('fail');
+        setTestMsg('Invalid API key');
+        addLog('OpenAI connection test: FAILED — Invalid API key (401)', 'error');
+      } else {
+        setTest('fail');
+        setTestMsg(`${res.status} ${res.statusText}`);
+        addLog(`OpenAI connection test: FAILED — ${res.status} ${res.statusText}`, 'error');
+      }
+    } catch (e: unknown) {
+      clearTimeout(timer);
+      setTest('fail');
+      const msg = e instanceof Error ? e.message : 'Connection failed';
+      setTestMsg(msg);
+      addLog(`OpenAI connection test: FAILED — ${msg}`, 'error');
+    }
+
+    setTimeout(() => { setTest('idle'); setTestMsg(''); }, 4000);
   }
 
   const testIcon = {
@@ -64,7 +100,7 @@ export function Connections() {
     fail:    <XCircle size={14} color="#ef4444" />,
   }[testState];
 
-  const testLabel = { idle: 'Test', testing: 'Testing…', ok: 'Success', fail: 'Failed' }[testState];
+  const testLabel = testState === 'idle' ? 'Test' : testState === 'testing' ? 'Testing…' : testMsg || (testState === 'ok' ? 'Success' : 'Failed');
   const keyStatus = state.openaiKey ? 'connected' : 'disconnected';
 
   return (
@@ -109,7 +145,7 @@ export function Connections() {
             </button>
             <button
               className={`btn-ghost btn-sm ${testState === 'ok' ? 'btn-success' : testState === 'fail' ? 'btn-danger' : ''}`}
-              onClick={testConnection}
+              onClick={() => { void testConnection(); }}
               disabled={!rawKey.trim() || testState === 'testing'}
             >
               {testIcon} {testLabel}

@@ -139,7 +139,12 @@ function createWindow(): void {
   });
 
   if (isDev) {
-    win.loadURL('http://localhost:5174');
+    let devPort = 5174;
+    try {
+      const portFile = path.join(process.cwd(), '.vite-port');
+      devPort = parseInt(fs.readFileSync(portFile, 'utf8').trim(), 10) || 5174;
+    } catch { /* .vite-port not written yet — fall back to default */ }
+    win.loadURL(`http://localhost:${devPort}`);
     win.webContents.openDevTools();
   } else {
     win.loadFile(path.join(__dirname, '../dist/index.html'));
