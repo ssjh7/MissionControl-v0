@@ -11,6 +11,20 @@ export interface McBridge {
 
   /** Write visible logs to D:\MissionControl\logs\export-<timestamp>.txt; returns the file path */
   exportLogs(content: string): Promise<string>;
+
+  /** Classify a WhatsApp message via GPT-4o-mini (6 s timeout, falls back to intent='chat' on error) */
+  analyzeMessage(
+    text: string,
+    sourceMessageId: string | number,
+    apiKey: string,
+  ): Promise<{
+    ok: boolean;
+    intent: string;
+    summary: string;
+    reasoning: string;
+    suggestedAction: string;
+    requiresApproval: boolean;
+  }>;
 }
 
 declare global {

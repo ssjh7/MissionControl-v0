@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
-import type { AppState, Tab, Worker, MCTask, LogEntry, StatusLevel } from './types';
+import type { AppState, Tab, Worker, MCTask, LogEntry, StatusLevel, Proposal } from './types';
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 const uid = () => Math.random().toString(36).slice(2, 10);
@@ -32,6 +32,7 @@ const initialState: AppState = {
     { id: 't-3', name: 'Report Export',  description: 'Export findings to CSV',  workerId: null,  status: 'pending', createdAt: Date.now() - 600000, output: '' },
   ],
   logs: [],
+  proposals: [],
   openaiKey: '',
   firstRunDone: false,
   ingressUrl: 'http://localhost:3001',
@@ -51,6 +52,8 @@ type Action =
   | { type: 'CLEAR_LOGS' }
   | { type: 'SET_OPENAI_KEY'; raw: string }
   | { type: 'SET_INGRESS_URL'; url: string }
+  | { type: 'ADD_PROPOSAL'; proposal: Proposal }
+  | { type: 'UPDATE_PROPOSAL'; id: string; patch: Partial<Proposal> }
   | { type: 'MARK_FIRST_RUN' }
   | { type: 'LOAD_SAVED'; saved: Partial<AppState> };
 
@@ -79,6 +82,9 @@ function reducer(state: AppState, action: Action): AppState {
     case 'CLEAR_LOGS': return { ...state, logs: [] };
     case 'SET_OPENAI_KEY':  return { ...state, openaiKey: obfuscate(action.raw) };
     case 'SET_INGRESS_URL': return { ...state, ingressUrl: action.url };
+    case 'ADD_PROPOSAL':    return { ...state, proposals: [action.proposal, ...state.proposals] };
+    case 'UPDATE_PROPOSAL':
+      return { ...state, proposals: state.proposals.map(p => p.id === action.id ? { ...p, ...action.patch } : p) };
     case 'MARK_FIRST_RUN':  return { ...state, firstRunDone: true };
     case 'LOAD_SAVED': return { ...state, ...action.saved };
     default: return state;

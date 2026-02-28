@@ -1,4 +1,4 @@
-export type Tab = 'dashboard' | 'workers' | 'tasks' | 'logs' | 'connections' | 'settings';
+export type Tab = 'dashboard' | 'workers' | 'tasks' | 'logs' | 'connections' | 'proposals' | 'settings';
 
 export type StatusLevel = 'active' | 'idle' | 'offline';
 export type TaskStatus = 'pending' | 'running' | 'complete' | 'failed';
@@ -40,6 +40,21 @@ export interface LogEntry {
   message: string;
 }
 
+export type ProposalIntent = 'task' | 'query' | 'alert' | 'trade' | 'chat' | 'other';
+
+export interface Proposal {
+  id: string;
+  sourceMessageId: string | number;
+  intent: ProposalIntent;
+  summary: string;
+  reasoning: string;
+  suggestedAction: string;
+  requiresApproval: boolean;
+  approved: null | boolean;
+  replied: boolean;
+  createdAt: number;
+}
+
 export interface AppState {
   powered: boolean;
   activeTab: Tab;
@@ -47,6 +62,7 @@ export interface AppState {
   generals: General[];
   tasks: MCTask[];
   logs: LogEntry[];
+  proposals: Proposal[];
   openaiKey: string;
   firstRunDone: boolean;
   ingressUrl: string;

@@ -11,4 +11,13 @@ contextBridge.exposeInMainWorld('mc', {
 
   exportLogs: (content: string): Promise<string> =>
     ipcRenderer.invoke('mc:export-logs', content),
+
+  analyzeMessage: (
+    text: string,
+    sourceMessageId: string | number,
+    apiKey: string,
+  ): Promise<{
+    ok: boolean; intent: string; summary: string;
+    reasoning: string; suggestedAction: string; requiresApproval: boolean;
+  }> => ipcRenderer.invoke('mc:analyze-message', text, sourceMessageId, apiKey),
 });

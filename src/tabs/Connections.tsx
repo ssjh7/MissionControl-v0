@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Eye, EyeOff, Zap, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { useApp } from '../context';
 import WhatsAppInbox from '../components/WhatsAppInbox';
+import { useProposalEngine } from '../hooks/useProposalEngine';
 
 type TestState = 'idle' | 'testing' | 'ok' | 'fail';
 
@@ -34,6 +35,7 @@ function ConnectionCard({
 
 export function Connections() {
   const { state, dispatch, addLog, getOpenaiKey } = useApp();
+  const { analyzeAndPropose } = useProposalEngine();
   const [rawKey,    setRawKey]   = useState(() => getOpenaiKey());
   const [showKey,   setShowKey]  = useState(false);
   const [testState, setTest]     = useState<TestState>('idle');
@@ -77,7 +79,7 @@ export function Connections() {
       {/* ── WhatsApp Live Inbox ── */}
       <div style={{ marginBottom: 24 }}>
         <p className="tab-subtitle" style={{ marginBottom: 8 }}>WhatsApp Live Inbox</p>
-        <WhatsAppInbox />
+        <WhatsAppInbox onNewItem={(item) => { void analyzeAndPropose(item); }} />
       </div>
 
       <div className="conn-grid">

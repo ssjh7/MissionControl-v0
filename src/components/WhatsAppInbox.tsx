@@ -11,7 +11,7 @@ function formatTime(ts: number) {
   }
 }
 
-export default function WhatsAppInbox() {
+export default function WhatsAppInbox({ onNewItem }: { onNewItem?: (item: InboxItem) => void }) {
   const { state } = useApp();
   const baseUrl = state.ingressUrl;
 
@@ -43,7 +43,7 @@ export default function WhatsAppInbox() {
       cleanup = connectInboxSSE(
         baseUrl,
         (snapshot) => { setItems(snapshot); setLastUpdate(Date.now()); },
-        (item) => { setItems((prev) => prependCapped(prev, item)); setLastUpdate(Date.now()); },
+        (item) => { setItems((prev) => prependCapped(prev, item)); setLastUpdate(Date.now()); onNewItem?.(item); },
         (s) => setStatus(s)
       );
     })();

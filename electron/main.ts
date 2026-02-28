@@ -43,6 +43,81 @@ ipcMain.handle('mc:export-logs', async (_event, content: string) => {
   return filePath;
 });
 
+ipcMain.handle('mc:analyze-message', async (
+  _event,
+  text: string,
+  _sourceMessageId: string | number,
+  apiKey: string,
+) => {
+  const FALLBACK = {
+    ok: false,
+    intent: 'chat',
+    summary: text.slice(0, 120),
+    reasoning: 'GPT analysis unavailable',
+    suggestedAction: 'Review message manually',
+    requiresApproval: true,
+  };
+
+  if (!apiKey) return FALLBACK;
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 6000);
+
+  try {
+    const body = JSON.stringify({
+      model: 'gpt-4o-mini',
+      response_format: { type: 'json_object' },
+      max_tokens: 300,
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You are an intent classifier for MissionControl, a business operations dashboard. ' +
+            'Analyse the incoming message and respond with a JSON object containing exactly these keys:\n' +
+            '  intent: one of "task"|"query"|"alert"|"trade"|"chat"|"other"\n' +
+            '  summary: short one-sentence summary (max 120 chars)\n' +
+            '  reasoning: one sentence explaining your classification\n' +
+            '  suggestedAction: one concrete action the operator should take\n' +
+            '  requiresApproval: true if action has real-world consequences, else false\n' +
+            'Respond ONLY with the JSON object.',
+        },
+        { role: 'user', content: text },
+      ],
+    });
+
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body,
+      signal: controller.signal,
+    });
+
+    clearTimeout(timer);
+
+    if (!res.ok) return FALLBACK;
+
+    const json = await res.json() as { choices?: { message?: { content?: string } }[] };
+    const raw = json.choices?.[0]?.message?.content ?? '';
+    const parsed = JSON.parse(raw) as {
+      intent?: string; summary?: string; reasoning?: string;
+      suggestedAction?: string; requiresApproval?: boolean;
+    };
+
+    const VALID_INTENTS = new Set(['task', 'query', 'alert', 'trade', 'chat', 'other']);
+    return {
+      ok: true,
+      intent:           VALID_INTENTS.has(parsed.intent ?? '') ? parsed.intent : 'other',
+      summary:          typeof parsed.summary         === 'string' ? parsed.summary.slice(0, 200)         : text.slice(0, 120),
+      reasoning:        typeof parsed.reasoning       === 'string' ? parsed.reasoning.slice(0, 300)       : '',
+      suggestedAction:  typeof parsed.suggestedAction === 'string' ? parsed.suggestedAction.slice(0, 300) : 'Review message',
+      requiresApproval: typeof parsed.requiresApproval === 'boolean' ? parsed.requiresApproval : true,
+    };
+  } catch {
+    clearTimeout(timer);
+    return FALLBACK;
+  }
+});
+
 // ---------------------------------------------------------------------------
 // Window
 // ---------------------------------------------------------------------------

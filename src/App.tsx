@@ -5,6 +5,7 @@ import { Workers }     from './tabs/Workers';
 import { Tasks }       from './tabs/Tasks';
 import { Logs }        from './tabs/Logs';
 import { Connections } from './tabs/Connections';
+import { Proposals }   from './tabs/Proposals';
 import { Settings }    from './tabs/Settings';
 import './App.css';
 
@@ -27,6 +28,7 @@ function Shell() {
         {tab === 'tasks'       && <Tasks />}
         {tab === 'logs'        && <Logs />}
         {tab === 'connections' && <Connections />}
+        {tab === 'proposals'   && <Proposals />}
         {tab === 'settings'    && <Settings />}
       </main>
     </div>
