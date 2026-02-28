@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Eye, EyeOff, Zap, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { useApp } from '../context';
+import WhatsAppInbox from '../components/WhatsAppInbox';
 
 type TestState = 'idle' | 'testing' | 'ok' | 'fail';
 
@@ -71,6 +72,12 @@ export function Connections() {
           <h2 className="tab-title">Connections</h2>
           <p className="tab-subtitle">API keys, integrations, and external services</p>
         </div>
+      </div>
+
+      {/* ── WhatsApp Live Inbox ── */}
+      <div style={{ marginBottom: 24 }}>
+        <p className="tab-subtitle" style={{ marginBottom: 8 }}>WhatsApp Live Inbox</p>
+        <WhatsAppInbox />
       </div>
 
       <div className="conn-grid">
