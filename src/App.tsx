@@ -16,13 +16,14 @@ function Shell() {
   const tab = activeTab;
 
   return (
-    <div className="app-layout">
+    <div className="mc-root">
+      <div className="mc-glow-bg" />
       <Sidebar
         activeTab={tab}
         onTabChange={t => dispatch({ type: 'SET_TAB', tab: t })}
         powered={powered}
       />
-      <main className="main-area">
+      <main className="mc-main">
         {tab === 'dashboard'   && <Dashboard />}
         {tab === 'workers'     && <Workers />}
         {tab === 'tasks'       && <Tasks />}

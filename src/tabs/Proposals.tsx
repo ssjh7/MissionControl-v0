@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ClipboardList, Check, X, MessageSquare } from 'lucide-react';
 import { useApp } from '../context';
+import { Button } from '../components/Button';
 import type { Proposal, ProposalIntent } from '../types';
 
 type Filter = 'pending' | 'approved' | 'rejected' | 'all';
@@ -15,14 +16,12 @@ const INTENT_COLOR: Record<ProposalIntent, string> = {
 };
 
 function IntentBadge({ intent }: { intent: ProposalIntent }) {
+  const c = INTENT_COLOR[intent];
   return (
     <span style={{
-      fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6,
-      background: `${INTENT_COLOR[intent]}22`,
-      color: INTENT_COLOR[intent],
-      border: `1px solid ${INTENT_COLOR[intent]}55`,
-      textTransform: 'uppercase',
-      letterSpacing: 1,
+      fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 9999,
+      background: `${c}18`, color: c, border: `1px solid ${c}44`,
+      textTransform: 'uppercase', letterSpacing: 1.2,
     }}>
       {intent}
     </span>
@@ -31,17 +30,16 @@ function IntentBadge({ intent }: { intent: ProposalIntent }) {
 
 function ProposalCard({ proposal }: { proposal: Proposal }) {
   const { dispatch, addLog } = useApp();
+  const [hovered, setHovered] = useState(false);
 
   function approve() {
     dispatch({ type: 'UPDATE_PROPOSAL', id: proposal.id, patch: { approved: true } });
     addLog(`[Proposals] Approved: ${proposal.summary}`, 'info');
   }
-
   function reject() {
     dispatch({ type: 'UPDATE_PROPOSAL', id: proposal.id, patch: { approved: false } });
     addLog(`[Proposals] Rejected: ${proposal.summary}`, 'warn');
   }
-
   function replyAndClose() {
     dispatch({ type: 'UPDATE_PROPOSAL', id: proposal.id, patch: { replied: true, approved: false } });
     addLog(`[Proposals] Marked replied & closed: ${proposal.summary}`, 'info');
@@ -51,71 +49,84 @@ function ProposalCard({ proposal }: { proposal: Proposal }) {
   const isApproved = proposal.approved === true;
   const isRejected = proposal.approved === false || proposal.replied;
 
-  const statusColor = isApproved ? '#22c55e' : isRejected ? '#ef4444' : '#f59e0b';
+  const statusColor = isApproved ? '#10b981' : isRejected ? '#ef4444' : '#f59e0b';
   const statusLabel = isApproved ? 'Approved' : isRejected ? (proposal.replied ? 'Replied & Closed' : 'Rejected') : 'Pending';
+  const intentColor = INTENT_COLOR[proposal.intent];
 
   return (
-    <div style={{
-      borderRadius: 12,
-      border: `1px solid ${isPending ? 'rgba(245,158,11,0.3)' : 'rgba(255,255,255,0.1)'}`,
-      background: 'var(--surface)',
-      padding: 16,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 10,
-    }}>
-      {/* header row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        position: 'relative',
+        background: 'rgba(255,255,255,0.04)',
+        backdropFilter: 'blur(14px)',
+        WebkitBackdropFilter: 'blur(14px)',
+        border: `1px solid ${isPending ? 'rgba(245,158,11,0.2)' : 'rgba(255,255,255,0.08)'}`,
+        borderRadius: 14,
+        padding: '14px 18px 14px 22px',
+        display: 'flex', flexDirection: 'column', gap: 10,
+        transform: hovered ? 'translateY(-2px)' : 'translateY(0)',
+        boxShadow: hovered ? '0 8px 28px rgba(0,0,0,0.25)' : '0 2px 8px rgba(0,0,0,0.1)',
+        transition: 'transform 200ms ease, box-shadow 200ms ease, border-color 200ms ease',
+      }}
+    >
+      {/* intent color bar */}
+      <div style={{
+        position: 'absolute', left: 0, top: 0, bottom: 0, width: 3,
+        borderRadius: '14px 0 0 14px',
+        background: intentColor,
+        boxShadow: `0 0 12px ${intentColor}66`,
+      }} />
+
+      {/* header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <IntentBadge intent={proposal.intent} />
-        <span style={{ fontSize: 11, opacity: 0.45, marginLeft: 'auto' }}>
+        <span style={{ fontSize: 11, color: '#374151', marginLeft: 'auto' }}>
           {new Date(proposal.createdAt).toLocaleString()}
         </span>
         <span style={{
-          fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 6,
-          background: `${statusColor}22`, color: statusColor, border: `1px solid ${statusColor}44`,
+          fontSize: 10, fontWeight: 700, padding: '2px 9px', borderRadius: 9999,
+          background: `${statusColor}18`, color: statusColor, border: `1px solid ${statusColor}33`,
         }}>
           {statusLabel}
         </span>
       </div>
 
       {/* summary */}
-      <div style={{ fontWeight: 700, fontSize: 14 }}>{proposal.summary}</div>
+      <div style={{ fontWeight: 600, fontSize: 14, color: '#f1f5f9', lineHeight: 1.4 }}>
+        {proposal.summary}
+      </div>
 
       {/* details */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, opacity: 0.75 }}>
-        <div><span style={{ opacity: 0.6 }}>Reasoning: </span>{proposal.reasoning}</div>
-        <div><span style={{ opacity: 0.6 }}>Suggested action: </span>
-          <span style={{ color: 'var(--accent)', fontWeight: 600 }}>{proposal.suggestedAction}</span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5, fontSize: 12, color: '#64748b' }}>
+        <div>
+          <span style={{ color: '#374151' }}>Reasoning — </span>
+          {proposal.reasoning}
+        </div>
+        <div>
+          <span style={{ color: '#374151' }}>Suggested action — </span>
+          <span style={{ color: '#f59e0b', fontWeight: 600 }}>{proposal.suggestedAction}</span>
         </div>
         {proposal.requiresApproval && (
-          <div style={{ color: '#f59e0b', fontSize: 11 }}>⚠ Requires manual approval before action</div>
+          <div style={{ color: '#92400e', fontSize: 11, marginTop: 2 }}>
+            ⚠ Manual approval required before any action is taken
+          </div>
         )}
       </div>
 
-      {/* action buttons — only for pending */}
+      {/* action buttons — pending only */}
       {isPending && (
-        <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-          <button
-            className="btn-primary btn-sm"
-            onClick={approve}
-            style={{ display: 'flex', alignItems: 'center', gap: 5 }}
-          >
-            <Check size={13} /> Approve
-          </button>
-          <button
-            className="btn-ghost btn-danger btn-sm"
-            onClick={reject}
-            style={{ display: 'flex', alignItems: 'center', gap: 5 }}
-          >
-            <X size={13} /> Reject
-          </button>
-          <button
-            className="btn-ghost btn-sm"
-            onClick={replyAndClose}
-            style={{ display: 'flex', alignItems: 'center', gap: 5 }}
-          >
-            <MessageSquare size={13} /> Reply &amp; Close
-          </button>
+        <div style={{ display: 'flex', gap: 8, marginTop: 2 }}>
+          <Button variant="success" size="sm" onClick={approve}>
+            <Check size={12} /> Approve
+          </Button>
+          <Button variant="danger" size="sm" onClick={reject}>
+            <X size={12} /> Reject
+          </Button>
+          <Button variant="ghost" size="sm" onClick={replyAndClose}>
+            <MessageSquare size={12} /> Reply &amp; Close
+          </Button>
         </div>
       )}
     </div>
@@ -148,26 +159,29 @@ export function Proposals() {
       <div className="tab-header">
         <div>
           <h2 className="tab-title" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <ClipboardList size={20} /> Proposals
+            <ClipboardList size={20} />
+            Proposals
             {pendingCount > 0 && (
               <span style={{
-                fontSize: 12, fontWeight: 700, background: '#f59e0b', color: '#000',
-                borderRadius: 10, padding: '1px 8px',
+                fontSize: 11, fontWeight: 700,
+                background: 'rgba(245,158,11,0.2)', color: '#f59e0b',
+                border: '1px solid rgba(245,158,11,0.3)',
+                borderRadius: 9999, padding: '1px 9px',
               }}>
                 {pendingCount}
               </span>
             )}
           </h2>
-          <p className="tab-subtitle">Incoming messages classified by AI — approve or reject before any action is taken</p>
+          <p className="tab-subtitle">AI-classified incoming messages — approve or reject before any action</p>
         </div>
       </div>
 
       {/* filter bar */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+      <div style={{ display: 'flex', gap: 8 }}>
         {FILTERS.map(f => (
           <button
             key={f.id}
-            className={`btn-ghost btn-sm ${filter === f.id ? 'nav-item-active' : ''}`}
+            className={`filter-btn ${filter === f.id ? 'filter-btn-active' : ''}`}
             onClick={() => setFilter(f.id)}
           >
             {f.label}
@@ -177,13 +191,13 @@ export function Proposals() {
 
       {/* proposal list */}
       {filtered.length === 0 ? (
-        <div style={{ opacity: 0.5, fontSize: 13, textAlign: 'center', paddingTop: 48 }}>
+        <div style={{ opacity: 0.4, fontSize: 13, textAlign: 'center', paddingTop: 60 }}>
           {state.proposals.length === 0
-            ? 'No proposals yet. Send a WhatsApp message to generate one.'
+            ? 'No proposals yet — send a WhatsApp message to generate one.'
             : 'No proposals match this filter.'}
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {filtered.map(p => <ProposalCard key={p.id} proposal={p} />)}
         </div>
       )}
