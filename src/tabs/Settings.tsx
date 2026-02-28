@@ -1,10 +1,50 @@
 import { useState } from 'react';
-import { Trash2, RefreshCw, Info } from 'lucide-react';
+import { Trash2, RefreshCw, Info, Wifi } from 'lucide-react';
 import { useApp } from '../context';
+
+const LOCAL_URL  = 'http://localhost:3001';
+const PUBLIC_URL = 'https://mc.missioncontrolapp.org';
 
 export function Settings() {
   const { state, dispatch, addLog } = useApp();
   const [confirmReset, setConfirmReset] = useState(false);
+
+  // WhatsApp Ingress
+  const [draftUrl,    setDraftUrl]    = useState(state.ingressUrl);
+  const [healthState, setHealthState] = useState<'idle' | 'testing' | 'ok' | 'fail'>('idle');
+  const [healthMsg,   setHealthMsg]   = useState('');
+
+  function saveIngressUrl() {
+    const url = draftUrl.trim().replace(/\/$/, '');
+    dispatch({ type: 'SET_INGRESS_URL', url });
+    addLog(`WhatsApp ingress URL set to ${url}`, 'info');
+  }
+
+  function usePreset(url: string) {
+    setDraftUrl(url);
+    dispatch({ type: 'SET_INGRESS_URL', url });
+    addLog(`WhatsApp ingress URL set to ${url}`, 'info');
+  }
+
+  async function testHealth() {
+    const url = draftUrl.trim().replace(/\/$/, '');
+    setHealthState('testing');
+    setHealthMsg('');
+    try {
+      const res = await fetch(`${url}/health`, { signal: AbortSignal.timeout(5000) });
+      if (res.ok) {
+        setHealthState('ok');
+        setHealthMsg(`${res.status} OK`);
+      } else {
+        setHealthState('fail');
+        setHealthMsg(`${res.status} ${res.statusText}`);
+      }
+    } catch (e: unknown) {
+      setHealthState('fail');
+      setHealthMsg(e instanceof Error ? e.message : 'Connection failed');
+    }
+    setTimeout(() => setHealthState('idle'), 4000);
+  }
 
   const totalLogs    = state.logs.length;
   const totalWorkers = state.workers.length;
@@ -71,6 +111,46 @@ export function Settings() {
               <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>
                 {state.firstRunDone ? 'Completed' : 'Pending'}
               </span>
+            </div>
+          </div>
+        </div>
+
+        {/* WhatsApp Ingress */}
+        <div className="settings-card">
+          <div className="settings-card-title"><Wifi size={15} /> WhatsApp Ingress</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                className="key-input"
+                style={{ flex: 1 }}
+                value={draftUrl}
+                onChange={e => setDraftUrl(e.target.value)}
+                placeholder="http://localhost:3001"
+                spellCheck={false}
+              />
+              <button className="btn-primary btn-sm" onClick={saveIngressUrl}>Save</button>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button className="btn-ghost btn-sm" onClick={() => usePreset(LOCAL_URL)}>Use Local</button>
+              <button className="btn-ghost btn-sm" onClick={() => usePreset(PUBLIC_URL)}>Use Public</button>
+              <button
+                className={`btn-ghost btn-sm ${healthState === 'ok' ? 'btn-success' : healthState === 'fail' ? 'btn-danger' : ''}`}
+                onClick={() => { void testHealth(); }}
+                disabled={healthState === 'testing'}
+              >
+                {healthState === 'testing' ? 'Testing…' : healthState === 'ok' ? '✓ OK' : healthState === 'fail' ? '✗ Failed' : 'Test Connection'}
+              </button>
+            </div>
+            {healthMsg && (
+              <div style={{ fontSize: 12, color: healthState === 'ok' ? '#22c55e' : '#ef4444' }}>
+                {healthMsg}
+              </div>
+            )}
+            <div className="settings-rows" style={{ marginTop: 4 }}>
+              <div className="settings-row">
+                <span>Active URL</span>
+                <span style={{ fontFamily: 'monospace', fontSize: 11 }}>{state.ingressUrl}</span>
+              </div>
             </div>
           </div>
         </div>

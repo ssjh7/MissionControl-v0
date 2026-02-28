@@ -34,6 +34,7 @@ const initialState: AppState = {
   logs: [],
   openaiKey: '',
   firstRunDone: false,
+  ingressUrl: 'http://localhost:3001',
 };
 
 // ── actions ───────────────────────────────────────────────────────────────────
@@ -49,6 +50,7 @@ type Action =
   | { type: 'ADD_LOG'; entry: LogEntry }
   | { type: 'CLEAR_LOGS' }
   | { type: 'SET_OPENAI_KEY'; raw: string }
+  | { type: 'SET_INGRESS_URL'; url: string }
   | { type: 'MARK_FIRST_RUN' }
   | { type: 'LOAD_SAVED'; saved: Partial<AppState> };
 
@@ -75,8 +77,9 @@ function reducer(state: AppState, action: Action): AppState {
     case 'REMOVE_TASK': return { ...state, tasks: state.tasks.filter(t => t.id !== action.id) };
     case 'ADD_LOG':    return { ...state, logs: [action.entry, ...state.logs].slice(0, 500) };
     case 'CLEAR_LOGS': return { ...state, logs: [] };
-    case 'SET_OPENAI_KEY': return { ...state, openaiKey: obfuscate(action.raw) };
-    case 'MARK_FIRST_RUN': return { ...state, firstRunDone: true };
+    case 'SET_OPENAI_KEY':  return { ...state, openaiKey: obfuscate(action.raw) };
+    case 'SET_INGRESS_URL': return { ...state, ingressUrl: action.url };
+    case 'MARK_FIRST_RUN':  return { ...state, firstRunDone: true };
     case 'LOAD_SAVED': return { ...state, ...action.saved };
     default: return state;
   }
@@ -101,15 +104,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (raw) {
       try {
         const saved = JSON.parse(raw) as Partial<AppState>;
-        dispatch({ type: 'LOAD_SAVED', saved: { openaiKey: saved.openaiKey ?? '', firstRunDone: saved.firstRunDone ?? false } });
+        dispatch({ type: 'LOAD_SAVED', saved: {
+          openaiKey:   saved.openaiKey   ?? '',
+          firstRunDone: saved.firstRunDone ?? false,
+          ingressUrl:  saved.ingressUrl  ?? 'http://localhost:3001',
+        } });
       } catch { /* ignore */ }
     }
   }, []);
 
   // persist select fields
   useEffect(() => {
-    localStorage.setItem('mc_state', JSON.stringify({ openaiKey: state.openaiKey, firstRunDone: state.firstRunDone }));
-  }, [state.openaiKey, state.firstRunDone]);
+    localStorage.setItem('mc_state', JSON.stringify({ openaiKey: state.openaiKey, firstRunDone: state.firstRunDone, ingressUrl: state.ingressUrl }));
+  }, [state.openaiKey, state.firstRunDone, state.ingressUrl]);
 
   const addLog = useCallback((msg: string, level: LogEntry['level'] = 'info', workerId: string | null = null, taskId: string | null = null) => {
     dispatch({

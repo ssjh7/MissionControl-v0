@@ -49,4 +49,5 @@ export interface AppState {
   logs: LogEntry[];
   openaiKey: string;
   firstRunDone: boolean;
+  ingressUrl: string;
 }
