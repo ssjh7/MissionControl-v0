@@ -20,6 +20,11 @@ export default function WhatsAppInbox({ onNewItem }: { onNewItem?: (item: InboxI
   const [error, setError] = React.useState<string | null>(null);
   const [lastUpdate, setLastUpdate] = React.useState<number | null>(null);
 
+  // Keep a ref so the SSE callback always calls the latest onNewItem,
+  // even if the prop changes after the connection is established.
+  const onNewItemRef = React.useRef(onNewItem);
+  React.useEffect(() => { onNewItemRef.current = onNewItem; }, [onNewItem]);
+
   // Re-runs (and re-connects) whenever baseUrl changes
   React.useEffect(() => {
     let cleanup: (() => void) | null = null;
@@ -43,7 +48,7 @@ export default function WhatsAppInbox({ onNewItem }: { onNewItem?: (item: InboxI
       cleanup = connectInboxSSE(
         baseUrl,
         (snapshot) => { setItems(snapshot); setLastUpdate(Date.now()); },
-        (item) => { setItems((prev) => prependCapped(prev, item)); setLastUpdate(Date.now()); onNewItem?.(item); },
+        (item) => { setItems((prev) => prependCapped(prev, item)); setLastUpdate(Date.now()); onNewItemRef.current?.(item); },
         (s) => setStatus(s)
       );
     })();

@@ -13,6 +13,7 @@ export function useProposalEngine() {
 
   async function analyzeAndPropose(item: InboxItem) {
     const apiKey = getOpenaiKey();
+    addLog(`[Proposals] Using OpenAI key: ${apiKey ? 'present' : 'missing'}`, 'info');
 
     // Build fallback proposal in case GPT is unavailable
     let resolved = {
